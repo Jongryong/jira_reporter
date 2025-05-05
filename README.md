@@ -23,13 +23,14 @@ This project provides a [FastMCP](https://gofastmcp.com/) server that connects t
 *   [`uv`](https://docs.astral.sh/uv/getting-started/installation/) (recommended) or `pip` for package management.
 *   Access to a Jira instance (Cloud, Server, or Data Center).
 *   A Jira API Token (Personal Access Token for Server/DC).
+*   [FastMCP CLI](https://gofastmcp.com/getting-started/installation) installed and available in your system's PATH.
 
 ## ⚙️ Setup
 
 1.  **Clone the Repository (if applicable):**
     ```bash
-    git clone <your-repo-url>
-    cd <your-repo-directory>
+    git clone https://github.com/Jongryong/jira_reporter.git
+    cd jira_reporter
     ```
 
 2.  **Install Dependencies:**
@@ -43,7 +44,7 @@ This project provides a [FastMCP](https://gofastmcp.com/) server that connects t
     ```
 
 3.  **Create `.env` File:**
-    Create a file named `.env` in the same directory as `jira_reporter_server.py`. Add your Jira connection details:
+    Create a file named `.env` in the *same directory* as `jira_reporter_server.py`. Add your Jira connection details:
     ```dotenv
     # .env
     JIRA_URL=https://your-domain.atlassian.net  # Your Jira Cloud URL or Self-Hosted URL
@@ -55,29 +56,67 @@ This project provides a [FastMCP](https://gofastmcp.com/) server that connects t
         *   **Jira Cloud:** Generate an API token from your Atlassian account settings: [Manage API tokens](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/).
         *   **Jira Server/Data Center:** Generate a Personal Access Token (PAT) from your Jira user profile settings: [Using Personal Access Tokens](https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html).
 
-## ▶️ Running the Server
+## ▶️ Running the Server (Standalone)
 
-You can run the server in several ways:
+You can run the server independently for testing or other purposes:
 
-1.  **Directly with Python (for stdio clients like Claude Desktop):**
-    This is the standard way for clients that expect to execute a script.
+1.  **Directly with Python:**
     ```bash
     python jira_reporter_server.py
     ```
 
 2.  **Using the FastMCP CLI:**
-    This is useful for testing or running with different transports.
     ```bash
-    # Run with default stdio transport
     fastmcp run jira_reporter_server.py
-
-    # Run with SSE transport on port 8001
+    ```
+    To run with SSE (e.g., for remote access):
+    ```bash
     fastmcp run jira_reporter_server.py --transport sse --port 8001
     ```
 
-## 🛠️ Usage (MCP Tool)
+## 🖥️ Using with Claude Desktop
 
-The server exposes one primary tool to MCP clients:
+To make this server available as a tool within the Claude Desktop application:
+
+1.  **Ensure Prerequisites:** Make sure `fastmcp` is installed and accessible in your system's PATH, as the configuration below uses the `fastmcp` command.
+
+2.  **Locate Claude Config File:** Find the `claude_desktop_config.json` file. Its location depends on your operating system:
+    *   **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+    *   **Windows:** `%APPDATA%\Claude\claude_desktop_config.json` (usually `C:\Users\<YourUsername>\AppData\Roaming\Claude\claude_desktop_config.json`)
+    *   **Linux:** `~/.config/Claude/claude_desktop_config.json` (or `$XDG_CONFIG_HOME/Claude/`)
+
+3.  **Edit the Config File:** Open `claude_desktop_config.json` in a text editor.
+
+4.  **Add Server Configuration:** Find the `"mcpServers"` object within the JSON (if it doesn't exist, create it as an empty object `{}`). Add the following entry inside `mcpServers`, making sure to replace `"path/to/your/jira_reporter_server.py"` with the **absolute path** to your script:
+
+    ```json
+    {
+      "mcpServers": {
+        // ... other servers might be here ...
+
+        "jira_report": {
+          "command": "fastmcp",
+          "args": [
+            "run",
+            "/path/to/your/jira_reporter_server.py" // <-- IMPORTANT: Use the full, absolute path here
+          ]
+        }
+
+        // ... other servers might be here ...
+      }
+      // ... rest of your Claude config ...
+    }
+    ```
+    *   `"jira_report"`: This is the internal name Claude uses. You can change it if desired.
+    *   `"command": "fastmcp"`: Tells Claude to use the `fastmcp` command-line tool.
+    *   `"args": [...]`: Tells Claude to run `fastmcp run /path/to/your/jira_reporter_server.py`.
+
+5.  **Save and Restart:** Save the `claude_desktop_config.json` file and restart the Claude Desktop application.
+
+6.  **Invoke the Tool:** You should now be able to use the tool in Claude by mentioning the server name defined in the Python script (`Jira Weekly Reporter`). For example:
+    `@Jira Weekly Reporter generate jira report for project MYPROJ and summarize it`
+
+## 🛠️ MCP Tool Details
 
 *   **Tool Name:** `generate_jira_report`
 *   **Description:** Generates a report of Jira issues based on a JQL query (defaulting to recently updated). Optionally summarizes the report using the client's LLM.
@@ -91,41 +130,14 @@ The server exposes one primary tool to MCP clients:
 | `max_results` | `integer`    | No       | `50`                     | Maximum number of issues to include in the raw report data.                                                    |
 | `summarize`   | `boolean`    | No       | `false`                  | If `true`, the server will request a summary from the *client's* LLM via `ctx.sample()`.                       |
 
-**Example Client Call (Conceptual):**
-
-An MCP client would interact with this tool like this:
-
-```json
-// Request to the MCP server
-{
-  "method": "tools/call",
-  "params": {
-    "name": "generate_jira_report",
-    "arguments": {
-      "project_key": "MYPROJ",
-      "summarize": true,
-      "max_results": 20
-    }
-  }
-}
-
-// Potential Response from the MCP server (if summarize=true)
-{
-  "isError": false,
-  "content": [
-    {
-      "type": "text",
-      "text": "**Summary:**\n[LLM generated summary based on the report below]...\n\n**Full Report:**\nJira Report (YYYY-MM-DD)\nQuery: project = 'MYPROJ' AND updated >= -7d ORDER BY updated DESC\nFound X issues (showing max 20):\n--------------------\n- [MYPROJ-123] Fix login bug | Status: Done | Assignee: Jane Doe | Updated: YYYY-MM-DD HH:MM\n- [MYPROJ-124] Add new feature | Status: In Progress | Assignee: John Smith | Updated: YYYY-MM-DD HH:MM\n..."
-    }
-  ]
-}
-```
-
 ## 📦 Server Dependencies
-The FastMCP constructor includes dependencies=["jira"]. This tells tools like fastmcp install that the jira library is required for this server to function correctly when creating isolated environments.
+
+The `FastMCP` constructor includes `dependencies=["jira"]`. This tells tools like `fastmcp install` that the `jira` library is required for this server to function correctly when creating isolated environments.
 
 ## 🤝 Contributing
+
 Contributions are welcome! Please feel free to submit issues or pull requests.
 
 ## 📄 License
+
 MIT License
