@@ -2,6 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) <!-- Adjust if using a different license -->
+[![smithery badge](https://smithery.ai/badge/@Jongryong/jira_reporter)](https://smithery.ai/server/@Jongryong/jira_reporter)
 
 This project provides a [FastMCP](https://gofastmcp.com/) server that connects to your Jira instance (Cloud or Server/Data Center) to generate weekly reports based on issue activity. It leverages the `pycontribs-jira` library for Jira interaction and can optionally use the connected client's Large Language Model (LLM) for summarizing the generated report.
 

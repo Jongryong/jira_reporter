@@ -1,0 +1,29 @@
+# Smithery configuration file: https://smithery.ai/docs/build/project-config
+
+startCommand:
+  type: stdio
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({ command: 'python', args: ['jira_reporter_server.py'], env: { JIRA_URL: config.jiraUrl, JIRA_USERNAME: config.jiraUsername, JIRA_API_TOKEN: config.jiraApiToken } })
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - jiraUrl
+      - jiraUsername
+      - jiraApiToken
+    properties:
+      jiraUrl:
+        type: string
+        description: Jira server URL, e.g., https://your-domain.atlassian.net
+      jiraUsername:
+        type: string
+        description: Jira username or email
+      jiraApiToken:
+        type: string
+        description: Jira API token or Personal Access Token
+  exampleConfig:
+    jiraUrl: https://your-domain.atlassian.net
+    jiraUsername: user@example.com
+    jiraApiToken: yourApiTokenHere
