@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/jongryong-jira-reporter-badge.png)](https://mseep.ai/app/jongryong-jira-reporter)
+
 # Jira Weekly Reporter MCP Server
 
 [![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
